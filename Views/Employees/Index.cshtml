@@ -272,7 +272,7 @@
         const tr = $(`
           <tr role="button">
             <td>
-              <i class="bi bi-person-circle me-2"></i> ${r.name}
+            <i class="bi bi-person-circle me-2"></i> ${r.name}
             </td>
             <td class="fw-semibold">${r.id}</td>
             <td class="small" style="color: black;">
@@ -298,9 +298,9 @@
 
       $('#statTotal').text(total);
       $('#statGender').html(
-        `<i class="bi bi-gender-male"></i>${l} <small>Laki-Laki</small> - 
+        `<i class="bi bi-gender-male"></i>${l} <small>Laki-Laki</small> -
          <i class="bi bi-gender-female"></i>${p} <small>Perempuan</small>
-        `
+         `
       );
       $('#statAvg').text(total? ('Rp ' + money(Math.round(sum/total))) : '-');
     });
@@ -329,8 +329,15 @@
 
   function del(id){
     if(!confirm('Delete this employee?')) return;
-    $.post('/Employees/Delete', { id }, function(r){
-      if(r.ok) load(); else alert(r.message||'Failed');
+    $.ajax({
+      url: `/Employees/${encodeURIComponent(id)}`,
+      method: 'DELETE',
+      success: function(r){
+        if(r.ok) load(); else alert(r.message||'Failed');
+      },
+      error: function(xhr){
+        alert('Delete failed: ' + (xhr.responseText || xhr.status));
+      }
     });
   }
 
@@ -357,19 +364,46 @@
 
     $('#btnSave').on('click', function(){
       if(!$('#empForm').valid()) return;
+
       const payload = {
-        Id: $('#Id').val(),
-        Name: $('#Name').val(),
-        PlaceOfBirth: $('#PlaceOfBirth').val(),
-        DateOfBirth: $('#DateOfBirth').val(),
-        BasicSalary: +$('#BasicSalary').val(),
-        Gender: $('#Gender').val()==='P'?0:1,
-        MaritalStatus: ['Single','Married','Divorced'].indexOf($('#MaritalStatus').val())
+        id: $('#Id').val(),
+        name: $('#Name').val(),
+        placeOfBirth: $('#PlaceOfBirth').val(),
+        dateOfBirth: $('#DateOfBirth').val(),            // ISO date string OK
+        basicSalary: +$('#BasicSalary').val(),
+        gender: $('#Gender').val()==='P'?0:1,            // send enum as number (0/1)
+        maritalStatus: ['Single','Married','Divorced'].indexOf($('#MaritalStatus').val()) // 0/1/2
       };
-      const url = editingId ? '/Employees/Update' : '/Employees/Create';
-      $.ajax({ url, method:'POST', data: payload, success: function(r){
-        if(r.ok){ modal.hide(); load(); } else { alert(r.message||'Validation error'); }
-      }});
+
+      if (editingId) {
+        // PUT update as JSON
+        $.ajax({
+          url: `/Employees/${encodeURIComponent(editingId)}`,
+          method: 'PUT',
+          contentType: 'application/json',
+          data: JSON.stringify(payload),
+          success: function(r){
+            if(r.ok){ modal.hide(); load(); } else { alert(r.message||'Validation error'); }
+          },
+          error: function(xhr){
+            console.error(xhr.responseText);
+            alert('Update failed: ' + (xhr.responseText || xhr.status));
+          }
+        });
+      } else {
+        // POST create (form-encoded matches [FromForm])
+        $.ajax({
+          url: '/Employees/Create',
+          method: 'POST',
+          data: payload,
+          success: function(r){
+            if(r.ok){ modal.hide(); load(); } else { alert(r.message||'Validation error'); }
+          },
+          error: function(xhr){
+            alert('Create failed: ' + (xhr.responseText || xhr.status));
+          }
+        });
+      }
     });
   });
 </script>

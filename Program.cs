@@ -1,16 +1,11 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-
-
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
 app.UseStatusCodePages();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -18,15 +13,22 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseRouting();
+
+// Optional, but removes the static files warning
 app.UseStaticFiles();
 
-app.MapGet("/", () => Results.Redirect("/Employees/Index"));
+app.UseRouting();
 
+// ✅ This activates attribute-routed controllers like [HttpPut("{id}")]
+app.MapControllers();
+
+// For your MVC page navigation (Views)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Employees}/{action=Index}/{id?}"
 );
 
+// Optional redirect root -> /Employees
+app.MapGet("/", () => Results.Redirect("/Employees"));
 
 app.Run();
